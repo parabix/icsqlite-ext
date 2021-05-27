@@ -106,6 +106,10 @@ set(CMAKE_MACOSX_RPATH ON)
 # Enable all warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 
+if(ARTIFACT_TYPE STREQUAL "Static")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSQLITE_CORE=ON")
+endif()
+
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
 if(SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)

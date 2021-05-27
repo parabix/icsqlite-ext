@@ -12,15 +12,22 @@ static void icgrep_func(sqlite3_context *context, int argc, sqlite3_value **argv
 
 extern "C" {
 
-#ifdef _WIN32
-__declspec(dllexport)
-#endif
-int sqlite3_icgrepext_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi) {
+int sqlite3IcgrepInit(sqlite3 *db) {
   int rc = SQLITE_OK;
-  SQLITE_EXTENSION_INIT2(pApi);
   rc = sqlite3_create_function(db, "icgrep", 2, SQLITE_UTF8|SQLITE_INNOCUOUS,
                                0, icgrep_func, 0, 0);
   return rc;
 }
+
+#ifndef SQLITE_CORE
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
+int sqlite3_icgrepext_init(sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi) {
+  SQLITE_EXTENSION_INIT2(pApi);
+  (void)pzErrMsg;  /* Unused parameter */
+  return sqlite3IcgrepInit(db);
+}
+#endif // SQLITE_CORE
 
 } // extern "C"
