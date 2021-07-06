@@ -29,5 +29,6 @@
 #include <kernel/pipeline/driver/cpudriver.h>
 
 void icgrep_grep(const char * regex, const char * strToSearch, bool * matchFound);
+std::vector<uint64_t> icgrep_greplines(const char * regex, const char * strToSearch, const size_t length);
 
 #endif // ICGREP_GREP_H

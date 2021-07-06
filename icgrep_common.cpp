@@ -11,3 +11,7 @@ void icgrep_grep(const char * regex, const char * strToSearch, bool * matchFound
     *matchFound = foundMatch;
 }
 
+std::vector<uint64_t> icgrep_greplines(const char * regex, const char * strToSearch, const size_t length) {
+  re::RE * reAST = re::RE_Parser::parse(std::string(regex));
+  return grep::lineNumGrep(reAST, strToSearch, length);
+}

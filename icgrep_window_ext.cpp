@@ -2,49 +2,103 @@
 #include "icgrep_common.h"
 SQLITE_EXTENSION_INIT1
 
+#define SIZE_BUFFER (1024 * 1024 * 100)
+
 typedef struct {
   char *buffer;
+  char *regex;
   size_t length;
+  bool hasGrep;
+  std::vector<uint64_t> lines;
 } IcgrepInfo;
 
-static void icgrepXStep(sqlite3_context *context,int argc,sqlite3_value **argv) {
-  sqlite3_int64 *pInt;
-
-  if (sqlite3_value_type(argv[0])!=SQLITE_INTEGER) {
-    sqlite3_result_error(context, "invalid argument", -1);
-    return;
+static void icgrepCreateBuffer(IcgrepInfo *info, const char *regex) {
+  if (info && !info->buffer) {
+    info->buffer = (char *) malloc(sizeof(char) * SIZE_BUFFER);
+    info->regex = (char *) malloc(sizeof(char) * (strlen(regex) + 1));
+    strcpy(info->regex, regex);
   }
+}
 
-  pInt = (sqlite3_int64*)sqlite3_aggregate_context(context, sizeof(sqlite3_int64));
-  if (pInt) {
-    *pInt += sqlite3_value_int64(argv[0]);
+static void icgrepDeleteBuffer(IcgrepInfo *info) {
+  if (info && info->buffer) {
+    free(info->buffer);
+    free(info->regex);
+    info->regex = NULL;
+    info->buffer = NULL;
+  }
+}
+
+static void icgrepDoGrep(IcgrepInfo *info) {
+  if (info && !info->hasGrep) {
+    info->hasGrep = true;
+    info->lines = icgrep_greplines(info->regex, info->buffer, info->length);
+  }
+}
+
+static void icgrepXStep(sqlite3_context *context, int argc, sqlite3_value **argv) {
+  IcgrepInfo *info = (IcgrepInfo *)sqlite3_aggregate_context(context, sizeof(IcgrepInfo));
+
+  const char * regex = (const char *)sqlite3_value_text(argv[0]);
+  const char * strToSearch = (const char *)sqlite3_value_text(argv[1]);
+  const size_t sizeStr = strlen((char const *)strToSearch);
+  icgrepCreateBuffer(info, regex);
+
+  if (info) {
+    memcpy(info->buffer + info->length, strToSearch, sizeStr);
+    info->buffer[info->length + sizeStr] = '\n';
+    info->length += sizeStr + 1;
   }
 }
 
 static void icgrepXInverse(sqlite3_context *context, int argc, sqlite3_value **argv) {
-  sqlite3_int64 *pInt;
-  pInt = (sqlite3_int64*)sqlite3_aggregate_context(context, sizeof(sqlite3_int64));
-  *pInt -= sqlite3_value_int64(argv[0]);
+  IcgrepInfo *info = (IcgrepInfo *)sqlite3_aggregate_context(context, sizeof(IcgrepInfo));
+
+  const char * regex = (const char *)sqlite3_value_text(argv[0]);
+  const char * strToSearch = (const char *)sqlite3_value_text(argv[1]);
+  const size_t sizeStr = strlen((char const *)strToSearch);
+  icgrepCreateBuffer(info, regex);
+
+  if (info) {
+    info->length -= sizeStr + 1;
+  }
 }
 
 static void icgrepXFinal(sqlite3_context *context) {
-  sqlite3_int64 res = 0;
-  sqlite3_int64 *pInt;
-  pInt = (sqlite3_int64*)sqlite3_aggregate_context(context, 0);
-  if (pInt) {
-    res = *pInt;
+  IcgrepInfo *info = (IcgrepInfo *)sqlite3_aggregate_context(context, 0);
+  if (info) {
+    icgrepDoGrep(info);
   }
-  sqlite3_result_int64(context, res);
+  icgrepDeleteBuffer(info);
+  std::ostringstream vts;
+  if (!info->lines.empty())
+  {
+    auto vec = info->lines;
+    std::copy(vec.begin(), vec.end()-1,  std::ostream_iterator<int>(vts, ", "));
+    vts << vec.back();
+    sqlite3_result_text(context, vts.str().c_str(), strlen(vts.str().c_str()), NULL);
+  } else {
+    sqlite3_result_int(context, 0);
+  }
 }
 
 static void icgrepXValue(sqlite3_context *context) {
-  sqlite3_int64 res = 0;
-  sqlite3_int64 *pInt;
-  pInt = (sqlite3_int64*)sqlite3_aggregate_context(context, 0);
-  if (pInt) {
-     res = *pInt;
+  IcgrepInfo *info = (IcgrepInfo *)sqlite3_aggregate_context(context, 0);
+  if (info) {
+    icgrepDoGrep(info);
   }
-  sqlite3_result_int64(context, res);
+  icgrepDeleteBuffer(info);
+
+  std::ostringstream vts;
+  if (!info->lines.empty())
+  {
+    auto vec = info->lines;
+    std::copy(vec.begin(), vec.end()-1,  std::ostream_iterator<int>(vts, ", "));
+    vts << vec.back();
+    sqlite3_result_text(context, vts.str().c_str(), strlen(vts.str().c_str()), NULL);
+  } else {
+    sqlite3_result_int(context, 0);
+  }
 }
 
 extern "C" {
