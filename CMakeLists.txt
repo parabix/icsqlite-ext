@@ -228,6 +228,16 @@ DEPS
     # none for now
 )
 
+parabix_add_module(
+NAME
+    icgrepwindowext
+SRC
+    icgrep_common.cpp
+    icgrep_window_ext.cpp
+DEPS
+    # none for now
+)
+
 ### EXECUTABLE
 
 if(ADD_EXEC)
