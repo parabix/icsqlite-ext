@@ -15,3 +15,4 @@ std::vector<uint64_t> icgrep_greplines(const char * regex, const char * strToSea
   re::RE * reAST = re::RE_Parser::parse(std::string(regex));
   return grep::lineNumGrep(reAST, strToSearch, length);
 }
+
