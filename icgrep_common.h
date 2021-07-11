@@ -28,7 +28,38 @@
 #include <llvm/ADT/STLExtras.h> // for make_unique
 #include <kernel/pipeline/driver/cpudriver.h>
 
-void icgrep_grep(const char * regex, const char * strToSearch, bool * matchFound);
-std::vector<uint64_t> icgrep_greplines(const char * regex, const char * strToSearch, const size_t length);
+#include <util/aligned_allocator.h>
+
+namespace buffer {
+
+enum : unsigned {
+  MAX_SIMD_WIDTH_SUPPORTED   = 512U
+};
+
+template <typename T>
+using BufferAllocator = AlignedAllocator<T, (MAX_SIMD_WIDTH_SUPPORTED / (sizeof(T) * 8))>;
+
+template <typename T>
+class AlignedBuffer
+{
+public:
+  AlignedBuffer(const size_t length) { ptr = alloc.allocate(length, 0); }
+  ~AlignedBuffer() { alloc.deallocate(ptr, 0); }
+  void write(const size_t index, T element) { ptr[index] = element; }
+  void writeData(const size_t begin, T * elements, const size_t length) { memcpy(ptr + begin, elements, length); }
+  T* aligned_ptr() { return ptr; }
+
+private:
+    BufferAllocator<T> alloc;
+    T* ptr;
+};
+
+} //alignedbuffer
+
+template <typename T>
+void icgrep_grep(const char * regex, buffer::AlignedBuffer<T> * buffer, bool * matchFound);
+
+template <typename T>
+std::vector<uint64_t> icgrep_greplines(const char * regex, buffer::AlignedBuffer<T> * buffer, const size_t length);
 
 #endif // ICGREP_GREP_H

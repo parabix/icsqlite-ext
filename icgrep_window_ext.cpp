@@ -4,8 +4,10 @@ SQLITE_EXTENSION_INIT1
 
 #define SIZE_BUFFER (1024 * 1024 * 100)
 
+using namespace buffer;
+
 typedef struct {
-  char *buffer;
+  AlignedBuffer<char> * buffer;
   char *regex;
   size_t length;
   bool hasGrep;
@@ -14,7 +16,7 @@ typedef struct {
 
 static void icgrepCreateBuffer(IcgrepInfo *info, const char *regex) {
   if (info && !info->buffer) {
-    info->buffer = (char *) malloc(sizeof(char) * SIZE_BUFFER);
+    info->buffer = new AlignedBuffer<char>(sizeof(char) * SIZE_BUFFER);
     info->regex = (char *) malloc(sizeof(char) * (strlen(regex) + 1));
     strcpy(info->regex, regex);
   }
@@ -22,7 +24,7 @@ static void icgrepCreateBuffer(IcgrepInfo *info, const char *regex) {
 
 static void icgrepDeleteBuffer(IcgrepInfo *info) {
   if (info && info->buffer) {
-    free(info->buffer);
+    delete info->buffer;
     free(info->regex);
     info->regex = NULL;
     info->buffer = NULL;
@@ -36,6 +38,14 @@ static void icgrepDoGrep(IcgrepInfo *info) {
   }
 }
 
+static void icgrepMakeLastElementNull(IcgrepInfo *info) {
+  if (info) {
+    // make sure last element is null but do not move pointer
+    // as we want it to be overwritten later by the next string
+    info->buffer->write(info->length, (char)NULL);
+  }
+}
+
 static void icgrepXStep(sqlite3_context *context, int argc, sqlite3_value **argv) {
   IcgrepInfo *info = (IcgrepInfo *)sqlite3_aggregate_context(context, sizeof(IcgrepInfo));
 
@@ -45,9 +55,10 @@ static void icgrepXStep(sqlite3_context *context, int argc, sqlite3_value **argv
   icgrepCreateBuffer(info, regex);
 
   if (info) {
-    memcpy(info->buffer + info->length, strToSearch, sizeStr);
-    info->buffer[info->length + sizeStr] = '\n';
+    info->buffer->writeData(info->length, (char *)strToSearch, sizeStr); 
+    info->buffer->write(info->length + sizeStr, '\n');
     info->length += sizeStr + 1;
+    icgrepMakeLastElementNull(info);
   }
 }
 
@@ -61,6 +72,7 @@ static void icgrepXInverse(sqlite3_context *context, int argc, sqlite3_value **a
 
   if (info) {
     info->length -= sizeStr + 1;
+    icgrepMakeLastElementNull(info);
   }
 }
 
@@ -69,6 +81,7 @@ static void icgrepXFinal(sqlite3_context *context) {
   if (info) {
     icgrepDoGrep(info);
   }
+  printf("%s", info->buffer->aligned_ptr());
   icgrepDeleteBuffer(info);
   std::ostringstream vts;
   if (!info->lines.empty())

@@ -2,11 +2,16 @@
 #include "icgrep_common.h"
 SQLITE_EXTENSION_INIT1
 
+using namespace buffer;
+
 static void icgrep_func(sqlite3_context *context, int argc, sqlite3_value **argv) {
     const char * regex = (const char *)sqlite3_value_text(argv[0]);
-    const char * strToSearch = (const char *)sqlite3_value_text(argv[1]);
+    char * strToSearch = (char *)sqlite3_value_text(argv[1]);
+    const size_t len = strlen(static_cast<const char *>(strToSearch));
+    AlignedBuffer<char> buffer(len + 1);
+    buffer.writeData(0, strToSearch, len);
     bool matchFound;
-    icgrep_grep(regex, strToSearch, &matchFound);
+    icgrep_grep(regex, &buffer, &matchFound);
     sqlite3_result_int(context, static_cast<int>(matchFound));
 }
 
