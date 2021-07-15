@@ -36,10 +36,10 @@ enum : unsigned {
   MAX_SIMD_WIDTH_SUPPORTED   = 512U
 };
 
-template <typename T>
+template <class T>
 using BufferAllocator = AlignedAllocator<T, (MAX_SIMD_WIDTH_SUPPORTED / (sizeof(T) * 8))>;
 
-template <typename T>
+template <class T>
 class AlignedBuffer
 {
 public:
@@ -56,10 +56,8 @@ private:
 
 } //alignedbuffer
 
-template <typename T>
-void icgrep_grep(const char * regex, buffer::AlignedBuffer<T> * buffer, bool * matchFound);
+void icgrep_grep(const char * regex, buffer::AlignedBuffer<char> * buffer, bool * matchFound);
 
-template <typename T>
-std::vector<uint64_t> icgrep_greplines(const char * regex, buffer::AlignedBuffer<T> * buffer, const size_t length);
+std::vector<uint64_t> icgrep_greplines(const char * regex, buffer::AlignedBuffer<char> * buffer, const size_t length);
 
 #endif // ICGREP_GREP_H

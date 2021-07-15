@@ -12,7 +12,7 @@ using namespace buffer;
 
 namespace fs = boost::filesystem;
 int main (int argc, char **argv) {
-    /*bool res;
+    bool res;
     char * inputBool = argv[2];
     const size_t lengthInputBool = strlen(inputBool);
     buffer::AlignedBuffer<char> alignedBufferBool(lengthInputBool + 1);
@@ -26,7 +26,7 @@ int main (int argc, char **argv) {
     const size_t lengthInputLines = str.length();
     buffer::AlignedBuffer<char> alignedBufferLines(lengthInputLines + 1);
     alignedBufferLines.writeData(0, inputLines, lengthInputLines);
-    std::vector<uint64_t> v = icgrep_greplines<char>(argv[1], &alignedBufferLines, lengthInputLines + 1);
-    printf("size: %ld\n", v.size()); */
+    std::vector<uint64_t> v = icgrep_greplines(argv[1], &alignedBufferLines, lengthInputLines + 1);
+    printf("size: %ld\n", v.size()); 
 }
 
