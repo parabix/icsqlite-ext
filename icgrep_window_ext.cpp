@@ -34,7 +34,7 @@ static void icgrepDeleteBuffer(IcgrepInfo *info) {
 static void icgrepDoGrep(IcgrepInfo *info) {
   if (info && !info->hasGrep) {
     info->hasGrep = true;
-    info->lines = icgrep_greplines(info->regex, info->buffer, info->length);
+    info->lines = icgrep_greplines(info->regex, info->buffer, SIZE_BUFFER * sizeof(char));
   }
 }
 
@@ -86,10 +86,7 @@ static void icgrepXFinal(sqlite3_context *context) {
   std::ostringstream vts;
   if (!info->lines.empty())
   {
-    auto vec = info->lines;
-    std::copy(vec.begin(), vec.end()-1,  std::ostream_iterator<int>(vts, ", "));
-    vts << vec.back();
-    sqlite3_result_text(context, vts.str().c_str(), strlen(vts.str().c_str()), NULL);
+    sqlite3_result_int(context, info->lines.size());
   } else {
     sqlite3_result_int(context, 0);
   }
@@ -105,10 +102,7 @@ static void icgrepXValue(sqlite3_context *context) {
   std::ostringstream vts;
   if (!info->lines.empty())
   {
-    auto vec = info->lines;
-    std::copy(vec.begin(), vec.end()-1,  std::ostream_iterator<int>(vts, ", "));
-    vts << vec.back();
-    sqlite3_result_text(context, vts.str().c_str(), strlen(vts.str().c_str()), NULL);
+    sqlite3_result_int(context, info->lines.size());
   } else {
     sqlite3_result_int(context, 0);
   }
